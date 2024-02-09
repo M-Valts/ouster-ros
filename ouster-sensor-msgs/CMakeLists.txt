@@ -11,6 +11,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetConfig.srv"
   "srv/SetConfig.srv"
   "srv/GetMetadata.srv"
+  "srv/RecordPcap.srv"
   DEPENDENCIES std_msgs)
 
 ament_export_dependencies(rosidl_default_runtime)

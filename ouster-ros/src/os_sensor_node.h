@@ -23,8 +23,10 @@
 #include "ouster_sensor_msgs/msg/packet_msg.hpp"
 #include "ouster_sensor_msgs/srv/get_config.hpp"
 #include "ouster_sensor_msgs/srv/set_config.hpp"
+#include "ouster_sensor_msgs/srv/record_pcap.hpp"
 #include "ouster_ros/visibility_control.h"
 #include "ouster_ros/os_sensor_node_base.h"
+#include "ouster/os_pcap.h"
 
 #include "thread_safe_ring_buffer.h"
 
@@ -99,6 +101,8 @@ class OusterSensor : public OusterSensorNodeBase {
 
     void create_set_config_service();
 
+    void create_record_pcap_service();
+
     std::shared_ptr<sensor::client> create_sensor_client(
         const std::string& hostname, const sensor::sensor_config& config);
 
@@ -141,6 +145,7 @@ class OusterSensor : public OusterSensorNodeBase {
 
     void stop_packet_processing_threads();
 
+
    private:
     std::string sensor_hostname;
     std::string staged_config;
@@ -156,6 +161,8 @@ class OusterSensor : public OusterSensorNodeBase {
     rclcpp::Service<ouster_sensor_msgs::srv::GetConfig>::SharedPtr get_config_srv;
     rclcpp::Service<ouster_sensor_msgs::srv::SetConfig>::SharedPtr set_config_srv;
     std::shared_ptr<rclcpp::Client<ChangeState>> change_state_client;
+    rclcpp::Service<ouster_sensor_msgs::srv::RecordPcap>::SharedPtr record_pcap_srv;
+    std::shared_ptr<ouster::sensor_utils::record_handle> record_handle{nullptr};
 
     // TODO: implement & utilize a lock-free ring buffer in future
     std::unique_ptr<ThreadSafeRingBuffer> lidar_packets;

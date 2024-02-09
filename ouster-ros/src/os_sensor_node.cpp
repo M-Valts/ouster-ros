@@ -19,6 +19,7 @@
 using ouster_sensor_msgs::msg::PacketMsg;
 using ouster_sensor_msgs::srv::GetConfig;
 using ouster_sensor_msgs::srv::SetConfig;
+using ouster_sensor_msgs::srv::RecordPcap;
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -361,6 +362,23 @@ void OusterSensor::create_get_config_service() {
     RCLCPP_INFO(get_logger(), "get_config service created");
 }
 
+void OusterSensor::create_record_pcap_service(){
+    record_pcap_srv = create_service<RecordPcap>(
+        "record_pcap", [this](const std::shared_ptr<RecordPcap::Request> request,
+                             std::shared_ptr<RecordPcap::Response> response) {
+            response->success = false;
+            const int last_slash = request->filename.find_last_of('/');
+            const std::string base_path = request->filename.substr(0, last_slash + 1);
+            const std::string metadata_filename = base_path + "metadata.json";
+            write_text_to_file(metadata_filename, cached_metadata);
+
+            record_handle = ouster::sensor_utils::record_initialize(request->filename, 1500);
+
+            response->success = true;
+            return true;
+        });
+}
+
 void OusterSensor::create_set_config_service() {
     set_config_srv = create_service<SetConfig>(
         "set_config", [this](const std::shared_ptr<SetConfig::Request> request,
@@ -642,6 +660,7 @@ void OusterSensor::create_services() {
     create_get_metadata_service();
     create_get_config_service();
     create_set_config_service();
+    create_record_pcap_service();
 }
 
 void OusterSensor::create_publishers() {
@@ -708,6 +727,9 @@ void OusterSensor::handle_lidar_packet(sensor::client& cli,
         bool success = sensor::read_lidar_packet(cli, buffer, pf);
         if (success) {
             read_lidar_packet_errors = 0;
+            auto col = pf.nth_col(0, buffer);
+            auto const ts = pf.col_timestamp(col);
+            if (record_handle) ouster::sensor_utils::record_packet(*record_handle, sensor_hostname, info.config.udp_dest.value(), info.udp_port_lidar, info.udp_port_lidar, buffer, pf.lidar_packet_size, ts);
             if (!is_legacy_lidar_profile(info) && init_id_changed(pf, buffer)) {
                 // TODO: short circut reset if no breaking changes occured?
                 RCLCPP_WARN(get_logger(),

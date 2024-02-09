@@ -34,6 +34,7 @@ set(_ouster_ros_INCLUDE_DIRS
   include
   ouster-sdk/ouster_client/include
   ouster-sdk/ouster_client/include/optional-lite
+  ouster-sdk/ouster_pcap/include
 )
 
 # ==== Libraries ====
@@ -44,7 +45,7 @@ set(_SAVE_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS OFF)
 
 option(BUILD_VIZ "Turn off building VIZ" OFF)
-option(BUILD_PCAP "Turn off building PCAP" OFF)
+option(BUILD_PCAP "Turn on building PCAP" ON)
 find_package(OusterSDK REQUIRED)
 
 set(BUILD_SHARED_LIBS ${_SAVE_BUILD_SHARED_LIBS})
@@ -77,6 +78,7 @@ target_link_libraries(ouster_ros_library
   # PUBLIC (unsupported)
     ouster_build
     pcl_common
+    OusterSDK::ouster_pcap
   # PRIVATE (unsupported)
   -Wl,--whole-archive ouster_client -Wl,--no-whole-archive
 )
