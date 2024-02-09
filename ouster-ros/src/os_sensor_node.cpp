@@ -367,15 +367,30 @@ void OusterSensor::create_record_pcap_service(){
         "record_pcap", [this](const std::shared_ptr<RecordPcap::Request> request,
                              std::shared_ptr<RecordPcap::Response> response) {
             response->success = false;
-            const int last_slash = request->filename.find_last_of('/');
-            const std::string base_path = request->filename.substr(0, last_slash + 1);
-            const std::string metadata_filename = base_path + "metadata.json";
-            write_text_to_file(metadata_filename, cached_metadata);
+            if (request->toggle){
+              if(record_handle){
+                // already recording, should call stop and start again
+                response->success = false;
+                return false;
+              }
+              const int last_dot = request->filename.find_last_of('.');
+              const std::string base_path = request->filename.substr(0, last_dot);
+              const std::string metadata_filename = base_path + "_metadata.json";
+              write_text_to_file(metadata_filename, cached_metadata);
 
-            record_handle = ouster::sensor_utils::record_initialize(request->filename, 1500);
+              record_handle = ouster::sensor_utils::record_initialize(request->filename, 1500);
 
-            response->success = true;
-            return true;
+              response->success = true;
+              return true;
+            }
+            else{
+              if(record_handle){
+                ouster::sensor_utils::record_uninitialize(*record_handle);
+                record_handle.reset();
+              }
+              response->success = true;
+              return true;
+            }
         });
 }
 
@@ -850,6 +865,11 @@ void OusterSensor::stop_packet_processing_threads() {
     if (lidar_packets_processing_thread->joinable()) {
         lidar_packets_processing_thread_active = false;
         lidar_packets_processing_thread->join();
+    }
+
+    if(record_handle){
+      ouster::sensor_utils::record_uninitialize(*record_handle);
+      record_handle.reset();
     }
 }
 
